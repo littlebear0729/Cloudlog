@@ -1840,20 +1840,15 @@ function check_if_callsign_worked_in_logbook($callsign, $StationLocationsArray =
             $this->db->where('COL_PROP_MODE = ' . $propagation);
         }
 
-        // If date is set, we format the date and add it to the where-statement
+        // If date is set, we add it to the where-statement
         if ($fromdate != "") {
-            $from = DateTime::createFromFormat('d/m/Y', $fromdate);
-            $from = $from->format('Y-m-d');
-            $this->db->where("date(".$this->config->item('table_name').".COL_TIME_ON) >= '".$from."'");
+            $this->db->where("date(".$this->config->item('table_name').".COL_TIME_ON) >= '".$fromdate."'");
         }
         if ($todate != "") {
-            $to = DateTime::createFromFormat('d/m/Y', $todate);
-            $to = $to->format('Y-m-d');
-            $this->db->where("date(".$this->config->item('table_name').".COL_TIME_ON) <= '".$to."'");
+            $this->db->where("date(".$this->config->item('table_name').".COL_TIME_ON) <= '".$todate."'");
         }
 
         $query = $this->db->get($this->config->item('table_name'));
-
         return $query;
     }
 
@@ -2813,10 +2808,10 @@ function check_if_callsign_worked_in_logbook($callsign, $StationLocationsArray =
 	$qsql = "select COL_CLUBLOG_QSO_UPLOAD_STATUS as CL_STATE, COL_QRZCOM_QSO_UPLOAD_STATUS as QRZ_STATE from ".$this->config->item('table_name')." where COL_BAND=? and COL_CALL=? and COL_STATION_CALLSIGN=? and date_format(COL_TIME_ON, '%Y-%m-%d %H:%i') = ?";
 	$query = $this->db->query($qsql, array($band, $callsign,$station_callsign,$datetime));
 	$row = $query->row();
-	if ($row->QRZ_STATE == 'Y') {
+	if (($row->QRZ_STATE ?? '') == 'Y') {
 		$data['COL_QRZCOM_QSO_UPLOAD_STATUS'] = 'M';
 	}
-	if ($row->CL_STATE == 'Y') {
+	if (($row->CL_STATE ?? '') == 'Y') {
 		$data['COL_CLUBLOG_QSO_UPLOAD_STATUS'] = 'M';
 	}
 
@@ -2845,14 +2840,16 @@ function check_if_callsign_worked_in_logbook($callsign, $StationLocationsArray =
          if (isset($row)) {
             $station_gridsquare = $row->station_gridsquare;
          }
-         $this->load->library('Qra');
+         if(!$this->load->is_loaded('Qra')) {
+            $this->load->library('Qra');
+         }
          if ($qsl_gridsquare != "") {
             $data['COL_GRIDSQUARE'] = $qsl_gridsquare;
             $data['COL_DISTANCE'] = $this->qra->distance($station_gridsquare, $qsl_gridsquare, 'K');
          } elseif ($qsl_vucc_grids != "") {
             $data['COL_VUCC_GRIDS'] = $qsl_vucc_grids;
             $data['COL_DISTANCE'] = $this->qra->distance($station_gridsquare, $qsl_vucc_grids, 'K');
-      }
+         }
 
       $this->db->where('date_format(COL_TIME_ON, \'%Y-%m-%d %H:%i\') = "'.$datetime.'"');
       $this->db->where('COL_CALL', $callsign);
